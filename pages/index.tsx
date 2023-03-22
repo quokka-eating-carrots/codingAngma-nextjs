@@ -1,5 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 import Seo from "@/components/Seo";
-import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/router";
 
 type MovieTypes = {
   adult: boolean;
@@ -18,26 +20,48 @@ type MovieTypes = {
   vote_count: number;
 };
 
-export default function Home() {
-  const [movies, setMovies] = useState<MovieTypes[]>([]);
-  useEffect(() => {
-    (async () => {
-      const { results } = await (await fetch(`/api/movies`)).json();
-      setMovies(results);
-      console.log(results);
-    })();
-  }, []);
+type Props = {
+  results: MovieTypes[];
+};
+
+export default function Home({ results }: Props) {
+  const router = useRouter();
+  const onClick = (id: number, title: string) => {
+    router.push(
+      {
+        pathname: `/movies/${id}`,
+        query: {
+          title,
+        },
+      },
+      `/movies/${id}`
+    );
+  };
+  console.log(results);
   return (
     <div className="container">
       <Seo title="Home" />
-      {!movies.length && <h4>Loading...</h4>}
-      {movies?.map((movie) => (
-        <div key={movie.id} className="movie">
+      {results?.map((movie) => (
+        <div
+          className="movie"
+          key={movie.id}
+          onClick={() => onClick(movie.id, movie.original_title)}
+        >
           <img
             src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
             alt="영화 포스터"
           />
-          <h4>{movie.original_title}</h4>
+          <Link
+            href={{
+              pathname: `/movies/${movie.id}`,
+              query: {
+                title: movie.original_title,
+              },
+            }}
+            as={`/movies/${movie.id}`}
+          >
+            <h4>{movie.original_title}</h4>
+          </Link>
         </div>
       ))}
       <style jsx>{`
@@ -66,4 +90,13 @@ export default function Home() {
       `}</style>
     </div>
   );
+}
+
+export async function getServerSideProps() {
+  const { results } = await (
+    await fetch(`http://localhost:3000/api/movies`)
+  ).json();
+  return {
+    props: { results },
+  };
 }
